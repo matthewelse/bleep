@@ -1,22 +1,39 @@
+import argparse
 from bleep import BLEDevice
 
 if __name__ == "__main__":
-    for device in BLEDevice.discoverDevices(filter=lambda x: x.address == "C9:E8:56:3B:4D:B1"):
+    parser = argparse.ArgumentParser(description='Produce a tree of a BLE Device')
+
+    parser.add_argument('mac', help='Target MAC Address')
+
+    args = parser.parse_args()
+
+    address = args.mac
+
+    for device in BLEDevice.discoverDevices():
+        if device.address != address:
+            continue
+
         print(device)
+
         try:
             device.connect()
 
-            for uuid, service in device.services.items():
+            for uuid, service in device.services:
                 print("  " + repr(service))
 
-                for char_uuid, characteristic in service.characteristics.items():
+                for char_uuid, characteristic in service.characteristics:
                     print("    " + repr(characteristic))
+
+                    for desc_uuid, descriptor in characteristic.descriptors:
+                        print("      " + repr(descriptor))
 
             break
         except:
             device.requester.disconnect()
+            raise
         finally:
             device.requester.disconnect()
     else:
         # break didn't get called
-        print('No Devices Found')
+        print('Device not Found')
