@@ -26,6 +26,12 @@ class BLEDescriptor:
         else:
             return str(self.uuid)
 
+    def read(self):
+        return self.device.read_handle(self.handle)
+
+    def write(self):
+        raise NotImplementedError()
+
     def __repr__(self):
         return '%s' % self.shortest_uuid() if self.shortest_uuid() not in DESC_UUIDS else DESC_UUIDS[self.shortest_uuid()]['name']
 
@@ -40,11 +46,14 @@ class BLECharacteristic:
 
         # This has to be a list of tuples, since (I think) you
         # could theoretically have more than one of the same uuid
-        self.descriptors = [(x.shortest_uuid(), x) for x in self.get_descriptors()]
+        self.descriptors = list(self.get_descriptors())
 
     def read(self):
         # TODO: check whether we can read it at all :p
-        return self.device.requester.read_by_handle(self.value_handle)
+        return self.device.read_handle(self.value_handle)
+
+    def write(self):
+        raise NotImplementedError()
 
     def shortest_uuid(self):
         if is_short_uuid(self.uuid):
@@ -75,7 +84,7 @@ class BLEService:
         # This has to be a list of tuples rather than a dictionary
         # because there can be more than one characteristic with
         # each uuid
-        self.characteristics = [(x.shortest_uuid(), x) for x in self.get_characteristics()]
+        self.characteristics = list(self.get_characteristics())
 
     def shortest_uuid(self):
         if is_short_uuid(self.uuid):
@@ -136,12 +145,15 @@ class BLEDevice:
 
             # this also needs to be a list of tuples
             # services do not have to be unique.
-            self.services.append((uuid, serv))
+            self.services.append(serv)
 
     def __repr__(self):
         output = "Device Name: %s (%s)"
 
         return output % (self.name, self.address)
+
+    def read_handle(self, handle):
+        return self.requester.read_by_handle(handle)[0]
 
     @staticmethod
     def _discoverDevices(device='hci0', timeout=5, filter=lambda x: True):

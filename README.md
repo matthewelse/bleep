@@ -91,27 +91,27 @@ You can then access the device's services:
 
 ```python
 >>> device.services
-[('00001800-0000-1000-8000-00805f9b34fb', Generic Access), ('00001801-0000-1000-8000-00805f9b34fb', Generic Attribute), ('0000180a-0000-1000-8000-00805f9b34fb', Device Information), ('0000180f-0000-1000-8000-00805f9b34fb', Battery Service), ('00001812-0000-1000-8000-00805f9b34fb', Human Interface Device)]
+[Generic Access, Generic Attribute, Device Information, Battery Service, Human Interface Device]
 ```
 
 each service's characteristics
 
 ```python
->>> uuid, service = device.services[4]
+>>> service = device.services[4]
 >>> service
 Human Interface Device
 >>> service.characteristics
-[('2a4a', HID Information), ('2a4b', Report Map), ('2a4e', Protocol Mode), ('2a4c', HID Control Point), ('2a4d', Report), ('2a4d', Report)]
+[HID Information, Report Map, Protocol Mode, HID Control Point, Report, Report]
 ```
 
 and each characteristic's descriptors
 
 ```python
->>> uuid, char = service.characteristics[4]
+>>> char = service.characteristics[4]
 >>> char
 Report
 >>> char.descriptors
-[('2902', Client Characteristic Configuration), ('2908', Report Reference)]
+[Client Characteristic Configuration, Report Reference]
 ```
 
 ### Useful Functionality
