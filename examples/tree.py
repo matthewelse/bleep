@@ -19,13 +19,13 @@ if __name__ == "__main__":
         try:
             device.connect()
 
-            for uuid, service in device.services:
+            for service in device.services:
                 print("  " + repr(service))
 
-                for char_uuid, characteristic in service.characteristics:
+                for characteristic in service.characteristics:
                     print("    " + repr(characteristic))
 
-                    for desc_uuid, descriptor in characteristic.descriptors:
+                    for descriptor in characteristic.descriptors:
                         print("      " + repr(descriptor))
 
             break
