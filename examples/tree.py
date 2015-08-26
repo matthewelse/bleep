@@ -17,6 +17,7 @@ if __name__ == "__main__":
         print(device)
 
         try:
+            print("Attempting to connect to %s" % device.address)
             device.connect()
 
             for service in device.services:
