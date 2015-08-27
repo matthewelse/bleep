@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
-from future.utils import bytes_to_native_str
+from future.utils import bytes_to_native_str, native_str_to_bytes
 from future.builtins import int, bytes
 
 from gattlib import DiscoveryService, GATTRequester
@@ -28,16 +28,19 @@ class Requester(GATTRequester):
     def __init__(self, *args):
         GATTRequester.__init__(self, *args)
 
+        self.notification_callback = None
         self.notification_event = None
 
     def set_notification_event(self, event):
         self.notification_event = event
 
     def on_notification(self, handle, data):
-        print("RECEIVED NOTIFICATION FROM HANDLE: %i" % handle)
+        data = bytes([ord(x) for x in data[3:]])
+
+        if self.notification_callback is not None:
+            self.notification_callback(handle, data)
+
         self.notification_event.set()
-        # if self.notification_callback is not None:
-        #     self.notification_callback(handle, data)
 
 class BLEDescriptor:
     def __init__(self, device, handle, uuid):
@@ -71,7 +74,7 @@ class BLECharacteristic:
 
         # This has to be a list of tuples, since (I think) you
         # could theoretically have more than one of the same uuid
-        self.descriptors = list(self.get_descriptors())
+        self.descriptors = list(self._get_descriptors())
 
     def read(self):
         # TODO: check whether we can read it at all :p
@@ -86,7 +89,22 @@ class BLECharacteristic:
         else:
             return str(self.uuid)
 
-    def get_descriptors(self):
+    def get_descriptors(self, uuid):
+        return [c for c in self.descriptors if c.uuid == uuid]
+
+    def get_descriptor(self, uuid):
+        # TODO: make this neater, by using a dictionary of lists
+        matching = self.get_descriptors(uuid)
+
+        if len(matching) == 0:
+            raise RuntimeError("descriptor not found.")
+        elif len(matching) > 1:
+            # technically, there could be too few also :)
+            raise RuntimeError("too many descriptors with this uuid")
+
+        return matching[0]
+
+    def _get_descriptors(self):
         if self.value_handle + 1 > self.end_handle:
             return
             yield
@@ -113,7 +131,7 @@ class BLEService:
         # This has to be a list rather than a dictionary
         # because there can be more than one characteristic with
         # each uuid
-        self.characteristics = list(self.get_characteristics())
+        self.characteristics = list(self._get_characteristics())
 
     def shortest_uuid(self):
         if is_short_uuid(self.uuid):
@@ -121,7 +139,7 @@ class BLEService:
         else:
             return str(self.uuid)
 
-    def get_characteristics(self):
+    def _get_characteristics(self):
         characteristics = self.device.requester.discover_characteristics(self.start, self.end)
 
         for i, char in enumerate(characteristics):
@@ -137,9 +155,12 @@ class BLEService:
 
             yield BLECharacteristic(self.device, handle, value_handle, end_handle, uuid, properties)
 
+    def get_characteristics(self, uuid):
+        return [c for c in self.characteristics if c.uuid == uuid]
+
     def get_characteristic(self, uuid):
         # TODO: make this neater, by using a dictionary of lists
-        matching = [c for c in self.characteristics if c.uuid == uuid]
+        matching = self.get_characteristics(uuid)
 
         if len(matching) == 0:
             raise RuntimeError("characteristic not found.")
@@ -188,6 +209,8 @@ class BlockTransferService:
 
     FRAGMENT_SIZE = 20
 
+    CLIENT_CHARACTERISTIC_DESCRIPTOR = UUID("00002902-0000-1000-8000-00805F9B34FB")
+
     def __init__(self, service):
         self.service = service
 
@@ -203,17 +226,18 @@ class BlockTransferService:
         # me to you
         self.read_characteristic = service.get_characteristic(BlockTransferService.READ_CHARACTERISTIC_UUID)
 
+        # enable notifications
+        self.ccc_descriptor = self.read_characteristic.get_descriptor(BlockTransferService.CLIENT_CHARACTERISTIC_DESCRIPTOR)
+        print(self.ccc_descriptor.read())
+        self.ccc_descriptor.write(1)
+
     def write(self, block, offset=0):
         # TODO: deal with direct transfer
-        print(block)
-
         fragments = ceil(len(block) / self.FRAGMENT_SIZE)
-
-        print(len(block), offset, fragments)
-
         packet = self._write_setup_packet(len(block), offset, fragments)
 
         print('Writing SETUP Packet: %r' % packet)
+
         self.write_characteristic.write(packet)
 
         # wait for request packet.
@@ -222,13 +246,14 @@ class BlockTransferService:
         if notification_data[0] >> 4 == BlockTransferService.PACKET_TYPES['WRITE']['REQUEST']:
             start_index, number_of_fragments = self._parse_request_packet(notification_data)
 
-        print(start_index, number_of_fragments)
+        print('Received REQUEST Packet')
 
         current_packet = start_index
 
         while current_packet <= 0xffff:
             # send some data :)
-            packet = _generate_fragment(block, BlockTransferService.FRAGMENT_SIZE, current_packet, fragments)
+            packet = self._generate_fragment(block, BlockTransferService.FRAGMENT_SIZE, current_packet, fragments)
+            print([x for x in packet])
             self.write_characteristic.write(packet)
 
             # wait for it to be sent
@@ -255,7 +280,7 @@ class BlockTransferService:
         if packet[0] >> 4 == BlockTransferService.PACKET_TYPES['READ']['SETUP']:
             # yay block transfer
             # send a request packet
-            _, length, fragments = parse_bytes(packet, '133')
+            _, length, fragments, _ = parse_bytes(packet, '133')
 
             # TODO: re-request lost packets
             packets = [None for _ in range()]
@@ -295,7 +320,7 @@ class BlockTransferService:
         return data
 
     def _generate_direct(self, data, offset):
-        return int(BlockTransferService.PACKET_TYPES['WRITE']['DIRECT'] | offset & 0x0f).to_bytes(1, 'little') + \
+        return int((BlockTransferService.PACKET_TYPES['WRITE']['DIRECT'] << 4) | (offset & 0x0f)).to_bytes(1, 'little') + \
                int(offset >> 4).to_bytes(2, 'little') + \
                data
 
@@ -311,18 +336,18 @@ class BlockTransferService:
         else:
             packet_type = BlockTransferService.PACKET_TYPES['WRITE']['PAYLOAD_MORE']
 
-        return int(packet_type << 4 | fragment_number & 0x0f).to_bytes(1, 'little') + \
+        return int((packet_type << 4) | (fragment_number & 0x0f)).to_bytes(1, 'little') + \
                int(fragment_number >> 4).to_bytes(2, 'little') + \
                fragment
 
     def _parse_request_packet(self, packet):
         # we have the type already
-        _, start_index, number_of_fragments = parse_bytes(packet, '133')
+        _, start_index, number_of_fragments, _ = parse_bytes(packet, '133')
 
         return start_index, number_of_fragments
 
     def _parse_read_setup_packet(self, packet):
-        _, length, number_of_fragments = parse_bytes(packet, '133')
+        _, length, number_of_fragments, _ = parse_bytes(packet, '133')
 
         return length, number_of_fragments
 
@@ -346,25 +371,25 @@ class BLEDevice:
 
         self.notify_callback = None
         self.notification_event = Event()
+
         self.requester.set_notification_event(self.notification_event)
+        self.requester.notification_callback = self._on_notification
 
+        self.notification_handle = None
+        self.notification_data = None
 
-    #     self.notification_handle = None
-    #     self.notification_data = None
+    def notify(self, function):
+        self.notify_callback = function
 
-    # def notify(self, function):
-    #     self.notify_callback = function
+    def _on_notification(self, handle, data):
+        # TODO: propagate the notification to the necessary handle
+        self.notification_data = data
+        self.notification_handle = handle
 
-    # def _on_notification(self, handle, data):
-    #     # TODO: propagate the notification to the necessary handle
-    #     print("received notification to handle: %i" % handle)
-    #     self.notification_data = data
-    #     self.notification_handle = handle
+        self.notification_event.set()
 
-    #     self.notification_event.set()
-
-    #     if self.notify_callback is not None:
-    #         self.notify_callback(handle, data)
+        if self.notify_callback is not None:
+            self.notify_callback(handle, data)
 
     def connected(self):
         return self.requester.is_connected()
