@@ -16,6 +16,36 @@
 
 from setuptools import setup, find_packages
 
+import sys
+
+def check_system(systems, message):
+    import sys
+    if sys.platform in systems:
+        return
+    print(message)
+    sys.exit(1)
+
+OTHER_OS_MESSAGE = """
+        *****************************************************
+        *      bleep only works on Mac OS X and Linux       *
+        *                                                   *
+        * if you're using Windows, then raise an issue here *
+        * https://github.com/matthewelse/bleep suggesting   *
+        * that I add Windows support (if there isn't one    *
+        *                      already)                     *
+        *****************************************************
+    """
+
+# check that this is being installed on Mac OS X.
+check_system(['darwin', 'linux'], OTHER_OS_MESSAGE)
+
+if sys.platform == 'darwin':
+    platform_dependencies = ['pygattosx']
+    platform_links = ['https://github.com/matthewelse/pygattosx/archive/master.zip#egg=pygattosx']
+elif sys.platform == 'linux':
+    platform_dependencies = ['gattlib']
+    platform_links = ['https://github.com/matthewelse/pygattlib/archive/master.zip#egg=gattlib']
+
 setup(
     name = "bleep",
     version = "0.0.1",
@@ -30,10 +60,7 @@ setup(
         'bleep': ['data/*.json']
     },
     install_requires = [
-        'gattlib',
         'future'
-    ],
-    dependency_links = [
-        'https://github.com/matthewelse/pygattlib/archive/master.zip#egg=gattlib'
-    ]
+    ] + platform_dependencies,
+    dependency_links = platform_links
 )
