@@ -34,6 +34,6 @@ setup(
         'future'
     ],
     dependency_links = [
-        'https://github.com/matthewelse/pygattlib/archive/master.zip#egg=pygattlib'
+        'https://github.com/matthewelse/pygattlib/archive/master.zip#egg=gattlib'
     ]
 )
