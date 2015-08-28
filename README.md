@@ -20,7 +20,11 @@ First, install my fork of pygattlib and its dependencies:
 sudo apt-get install libboost-python-dev libboost-thread-dev libbluetooth-dev libglib2.0-dev python-dev
 ```
 
-> make sure that libbluetooth-dev is at least version 4.101
+You should also make sure that your version of libbluetooth is at least 4.101:
+
+```bash
+apt-cache policy libbluetooth-dev | grep Installed
+```
 
 Then, clone the repository, and install the python package.
 
