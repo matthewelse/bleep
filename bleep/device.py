@@ -23,7 +23,7 @@ from future.builtins import int, bytes
 
 from threading import Event
 
-from gattlib import DiscoveryService
+from .backend import DiscoveryService
 
 from .requester import Requester
 from .service import BLEService
