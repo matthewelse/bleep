@@ -1,6 +1,6 @@
 # bleep
 
-A BLE abstraction layer for Python inspired by [bleat](https://github.com/thegecko/bleat). Currently only supports Linux, support for OS X is coming soon.
+A BLE abstraction layer for Python inspired by [bleat](https://github.com/thegecko/bleat). Currently only supports Linux, with experimental support for Mac OS X.
 
 ## Current Support
 
@@ -56,7 +56,19 @@ This will cause any changes you make to bleep to be reflected when you import th
 
 ### Mac OS X
 
-TODO
+Installation on Mac OS X is very simple:
+
+```bash
+git clone https://github.com/matthewelse/bleep.git
+cd bleep
+sudo python setup.py install
+```
+
+Likewise, if you would like to develop bleep, run this instead of the last line:
+
+```bash
+sudo python setup.py develop
+```
 
 ## Examples
 
