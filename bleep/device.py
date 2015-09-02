@@ -103,7 +103,7 @@ class BLEDevice:
 
     def _write_handle(self, handle, data):
         # data has to be a bytes
-        print("Writing data %r to handle: %i" % (data, handle))
+        #print("Writing data %r to handle: %i" % (data, handle))
         return self.requester.write_by_handle(handle, bytes_to_native_str(data))
 
     def write_handle(self, handle, data):
