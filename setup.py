@@ -48,7 +48,11 @@ elif sys.platform == 'linux':
 
 setup(
     name = "bleep",
-    version = "0.0.1",
+    use_scm_version={
+        'local_scheme': 'dirty-tag',
+        'write_to': 'bleep/_version.py'
+    },
+    setup_requires=['setuptools_scm!=1.5.3,!=1.5.4'],
     author = "Matthew Else",
     author_email = "matthew.else@arm.com",
     description = "Python BLE API",
