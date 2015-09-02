@@ -17,7 +17,7 @@ import sys
 
 if sys.platform == 'darwin':
     from pygattosx import DiscoveryService, GATTRequester
-elif sys.platform == 'linux':
+elif 'linux' in sys.platform:
     from gattlib import DiscoveryService, GATTRequester
 else:
     raise ImportError("Unsupported platform.")
