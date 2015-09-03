@@ -42,7 +42,7 @@ check_system(['darwin', 'linux'], OTHER_OS_MESSAGE)
 if sys.platform == 'darwin':
     platform_dependencies = ['pygattosx']
     platform_links = ['https://github.com/matthewelse/pygattosx/archive/master.zip#egg=pygattosx']
-elif sys.platform == 'linux':
+elif 'linux' in sys.platform:
     platform_dependencies = ['gattlib']
     platform_links = ['https://github.com/matthewelse/pygattlib/archive/master.zip#egg=gattlib']
 
