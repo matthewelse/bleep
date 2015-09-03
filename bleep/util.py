@@ -31,12 +31,12 @@ CHAR_UUIDS = json.load(open(os.path.join(os.path.dirname(os.path.realpath(__file
 SERVICE_UUIDS = json.load(open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'services.json')))
 DESC_UUIDS = json.load(open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'descriptors.json')))
 
-class UUIDAccessor:
+class UUIDAccessor(object):
     def __init__(self, data, all = False):
         self.data = data
 
     def __iter__(self):
-        for obj in self.data.items():
+        for obj in self.data.itervalues():
             for item in obj:
                 yield item
 

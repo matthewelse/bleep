@@ -20,14 +20,16 @@ from __future__ import absolute_import
 from future.utils import bytes_to_native_str, native_str_to_bytes
 from future.builtins import int, bytes
 
+from uuid import UUID
 from threading import Event
 
-from .util import UUIDAccessor
-from .service import BLEService
 from .backend import DiscoveryService
 from .requester import Requester
 
-class BLEDevice:
+from .util import UUIDAccessor
+from .gatt.service import GATTService
+
+class BLEDevice(object):
     """Represents a single BLE Device
 
     Attributes:
@@ -80,12 +82,12 @@ class BLEDevice:
     def register_handle(self, handle, attribute):
         """Registers a handle to receive callbacks when notifications or indications occur
 
-        This should only be called within the constructor of BLEAttribute,
-        and only one BLEAttribute should be registered per handle.
+        This should only be called within the constructor of GATTAttribute,
+        and only one GATTAttribute should be registered per handle.
 
         Args:
             handle (int): Handle to look out for
-            attribute (BLEAttribute): Attribute to notify.
+            attribute (GATTAttribute): Attribute to notify.
         """
         if handle in self.handles:
             raise KeyError("Handle %i already registered." % handle)
@@ -96,7 +98,7 @@ class BLEDevice:
         """Registers a catch all indication callback
 
         It's usually better to register a callback to a specific
-        BLEAttribute, however if you need all of the callbacks,
+        GATTAttribute, however if you need all of the callbacks,
         then this is the way to go.
 
         Args:
@@ -118,7 +120,7 @@ class BLEDevice:
         """Registers a catch all notification callback
 
         It's usually better to register a callback to a specific
-        BLEAttribute, however if you need all of the callbacks,
+        GATTAttribute, however if you need all of the callbacks,
         then this is the way to go.
 
         Args:
@@ -153,13 +155,16 @@ class BLEDevice:
             start = service['start']
             end = service['end']
 
-            uuid = service['uuid']
+            uuid = UUID(service['uuid'])
 
-            serv = BLEService(self, uuid, start, end)
+            serv = GATTService(self, uuid, start, end)
 
             # this also needs to be a list of tuples
             # services do not have to be unique.
-            self.services.append(serv)
+            if uuid not in self._services:
+                self._services[uuid] = [serv]
+            else:
+                self._services[uuid].append(serv)
 
     def disconnect(self):
         """Disconnect from the device"""

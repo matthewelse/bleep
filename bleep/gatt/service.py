@@ -22,21 +22,21 @@ from future.builtins import int, bytes
 
 from uuid import UUID
 
-from .characteristic import BLECharacteristic
-from .util import is_short_uuid, SERVICE_UUIDS, UUIDAccessor
+from .characteristic import GATTCharacteristic
+from ..util import is_short_uuid, SERVICE_UUIDS, UUIDAccessor
 
-class BLEService:
+class GATTService(object):
     """Represents a single BLE Characteristic
 
     Attributes:
         characteristic (UUIDAccessor): Allows dictionary-like access to _unique_
             characteristics.
         characteristics (UUIDAccessor): Allows dictionary-like access to all characteristics.
-            BLEService.characteristics[UUID] always returns a list of BLECharacteristics
+            GATTService.characteristics[UUID] always returns a list of GATTCharacteristics
     """
 
     def __init__(self, device, uuid, start, end):
-        """Creates an instance of BLEService.
+        """Creates an instance of GATTService.
 
         Args:
             device (BLEDevice): BLEDevice object of which this is an attribute
@@ -50,7 +50,7 @@ class BLEService:
         self.start = start
         self.end = end
 
-        self._characteristics = self._get_characteristics()
+        self._characteristics = self._discover_characteristics()
 
         self.characteristic = UUIDAccessor(self._characteristics)
         self.characteristics = UUIDAccessor(self._characteristics, True)
@@ -68,19 +68,20 @@ class BLEService:
 
     def _discover_characteristics(self):
         characteristics = {}
+        raw_chars = self.device.requester.discover_characteristics(self.start, self.end)
 
-        for i, char in enumerate(self.device.requester.discover_characteristics(self.start, self.end)):
+        for i, char in enumerate(raw_chars):
             handle = char['handle']
             value_handle = char['value_handle']
             uuid = char['uuid']
             properties = char['properties']
 
-            if i == len(characteristics) - 1:
+            if i == len(raw_chars) - 1:
                 end_handle = self.end - 1
             else:
-                end_handle = characteristics[i + 1]['handle'] - 1
+                end_handle = raw_chars[i + 1]['handle'] - 1
 
-            characteristic = BLECharacteristic(self.device, handle, value_handle, end_handle, UUID(uuid), properties)
+            characteristic = GATTCharacteristic(self.device, handle, value_handle, end_handle, UUID(uuid), properties)
 
             if characteristic.uuid not in characteristics:
                 characteristics[characteristic.uuid] = [characteristic]

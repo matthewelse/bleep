@@ -13,5 +13,5 @@
 # limitations under the License.
 
 from .device import BLEDevice
-from .service import BLEService
-from .characteristic import BLECharacteristic, BLEDescriptor
+from .gatt.service import GATTService
+from .gatt.characteristic import GATTCharacteristic, GATTDescriptor

@@ -22,9 +22,9 @@ from future.builtins import int, bytes
 
 from uuid import UUID
 
-from .util import is_short_uuid, DESC_UUIDS, CHAR_UUIDS, UUIDAccessor
+from ..util import is_short_uuid, DESC_UUIDS, CHAR_UUIDS, UUIDAccessor
 
-class BLEAttribute:
+class GATTAttribute(object):
     """Represents a single GATT Attribute (either a Descriptor or a Characteristic)
 
     Attributes:
@@ -34,7 +34,7 @@ class BLEAttribute:
     """
 
     def __init__(self, device, handle, uuid):
-        """Creates an instance of BLEAttribute.
+        """Creates an instance of GATTAttribute.
 
         Note:
             This should not be used directly, unless being subclassed.
@@ -113,23 +113,23 @@ class BLEAttribute:
     def __repr__(self):
         raise NotImplementedError()
 
-class BLEDescriptor(BLEAttribute):
+class GATTDescriptor(GATTAttribute):
     """Represents a single BLE Descriptor"""
 
     def __init__(self, device, handle, uuid):
-        """Creates an instance of BLEAttribute.
+        """Creates an instance of GATTAttribute.
 
         Args:
             device (BLEDevice): BLEDevice object of which this is an descriptor
             handle (int): The numeric handle represented by this object
             uuid (UUID): The uuid representing this particular descriptor
         """
-        super(BLEDescriptor, self).__init__(device, handle, uuid)
+        super(GATTDescriptor, self).__init__(device, handle, uuid)
 
     def __repr__(self):
         return '%s' % self.shortest_uuid() if self.shortest_uuid() not in DESC_UUIDS else DESC_UUIDS[self.shortest_uuid()]['name']
 
-class BLECharacteristic:
+class GATTCharacteristic(GATTAttribute):
     """Represents a single BLE Characteristic
 
     Attributes:
@@ -139,18 +139,18 @@ class BLECharacteristic:
         descriptor (UUIDAccessor): Allows dictionary-like access to _unique_
             descriptors.
         descriptors (UUIDAccessor): Allows dictionary-like access to all descriptors.
-            BLECharacteristic.descriptors[UUID] always returns a list of BLEDescriptors
+            GATTCharacteristic.descriptors[UUID] always returns a list of GATTDescriptors
     """
 
     def __init__(self, device, handle, value_handle, end_handle, uuid, properties):
-        """Creates an instance of BLEAttribute.
+        """Creates an instance of GATTAttribute.
 
         Args:
             device (BLEDevice): BLEDevice object of which this is an descriptor
             handle (int): The numeric handle represented by this object
             uuid (UUID): The uuid representing this particular descriptor
         """
-        super(BLECharacteristic, self).__init__(self, device, value_handle, uuid)
+        super(GATTCharacteristic, self).__init__(device, value_handle, uuid)
 
         self.handle = handle
         self.end_handle = end_handle
@@ -167,20 +167,20 @@ class BLECharacteristic:
         if self.value_handle + 1 > self.end_handle:
             return descriptors
 
-        for descriptor in self.device.requester.discover_descriptors(self.value_handle + 1, self.end_handle):
-            try:
-                desc = BLEDescriptor(self.device, descriptor['handle'], UUID(descriptor['uuid']))
+        try:
+            for descriptor in self.device.requester.discover_descriptors(self.value_handle + 1, self.end_handle):
+                desc = GATTDescriptor(self.device, descriptor['handle'], UUID(descriptor['uuid']))
 
                 if desc.uuid in descriptors:
                     descriptors[desc.uuid].append(desc)
                 else:
                     descriptors[desc.uuid] = [desc]
-            except RuntimeError:
-                # pygattlib returns a RuntimeError if the device responds with an error
-                # which also happens when a descriptor cannot be found.
-                pass
+        except RuntimeError:
+            # pygattlib returns a RuntimeError if the device responds with an error
+            # which also happens when a descriptor cannot be found.
+            pass
 
-        return desc
+        return descriptors
 
     def __repr__(self):
         return self.shortest_uuid() if self.shortest_uuid() not in CHAR_UUIDS else CHAR_UUIDS[self.shortest_uuid()]['name']
