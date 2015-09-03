@@ -28,16 +28,17 @@ import os
 BASE_UUID = UUID("00000000-0000-1000-8000-00805F9B34FB")
 
 def merge_dicts(*dict_args):
-    '''
+    """
     Given any number of dicts, shallow copy and merge into a new dict,
-    precedence goes to key value pairs in latter dicts.
-    '''
+    precedence goes to key value pairs in later dicts.
+    """
     result = {}
     for dictionary in dict_args:
         result.update(dictionary)
     return result
 
 class BLEUUID(object):
+    """Representation of BLE UUIDs, with useful tools"""
     BASE_UUID_BYTES = bytearray(BASE_UUID.bytes)
 
     CHAR_UUIDS = json.load(open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'chars.json')))
@@ -68,34 +69,38 @@ class BLEUUID(object):
                 raise ValueError("Invalid UUID")
         elif isinstance(uuid, int):
             if uuid < 65536:
+                # 16-bit UUID
                 part = int(uuid).to_bytes(2, 'little')
                 self._uuid[2:4] = bytearray(part)
             elif uuid < 2**32:
+                # 32-bit UUID
                 part = int(uuid).to_bytes(4, 'little')
                 self._uuid[0:4] = bytearray(part)
             else:
                 raise ValueError("Invalid UUID")
 
-    def full_uuid(self):
+    def full_uuid_str(self):
+        """Return a string representation of the full UUID (128-bit)"""
         return str(UUID(bytes=str(self._uuid)))
 
     def canonical_str(self):
+        """Return the shortest specific string representation of the UUID"""
         if self._uuid[4:] == BLEUUID.BASE_UUID_BYTES[4:]:
             # At least a 32-bit UUID
             if self._uuid[:2] == BLEUUID.BASE_UUID_BYTES[:2]:
                 # 16-bit UUID
-                return self.full_uuid()[4:8]
+                return self.full_uuid_str()[4:8]
             else:
-                return self.full_uuid()[:8]
+                return self.full_uuid_str()[:8]
         else:
-            return self.full_uuid()
+            return self.full_uuid_str()
 
     def __str__(self):
         c_str = self.canonical_str()
         return c_str if c_str not in BLEUUID.UUID_LOOKUP else BLEUUID.UUID_LOOKUP[c_str]['name']
 
     def __repr__(self):
-        return "BLEUUID('%s')" % self.full_uuid()
+        return "BLEUUID('%s')" % self.full_uuid_str()
 
 class UUIDAccessor(object):
     def __init__(self, data, all = False):
