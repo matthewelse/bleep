@@ -1,18 +1,16 @@
-"""
- bleep: BLE Abstraction Library for Python
-
- Copyright (c) 2015 Matthew Else
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-     http://www.apache.org/licenses/LICENSE-2.0
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-"""
+# bleep: BLE Abstraction Library for Python
+#
+# Copyright (c) 2015 Matthew Else
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#  http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 # 2/3 compatibility
 from __future__ import division
@@ -25,31 +23,53 @@ from future.builtins import int, bytes
 from uuid import UUID
 
 from .characteristic import BLECharacteristic
-from .util import is_short_uuid, SERVICE_UUIDS
+from .util import is_short_uuid, SERVICE_UUIDS, UUIDAccessor
 
 class BLEService:
+    """Represents a single BLE Characteristic
+
+    Attributes:
+        characteristic (UUIDAccessor): Allows dictionary-like access to _unique_
+            characteristics.
+        characteristics (UUIDAccessor): Allows dictionary-like access to all characteristics.
+            BLEService.characteristics[UUID] always returns a list of BLECharacteristics
+    """
+
     def __init__(self, device, uuid, start, end):
+        """Creates an instance of BLEService.
+
+        Args:
+            device (BLEDevice): BLEDevice object of which this is an attribute
+            uuid (UUID): The uuid representing this particular attribute
+            start (int): The first handle of this service
+            end (int): The last handle in this service
+        """
         self.device = device
-        self.uuid = UUID(uuid)
+        self.uuid = uuid
 
         self.start = start
         self.end = end
 
-        # This has to be a list rather than a dictionary
-        # because there can be more than one characteristic with
-        # each uuid
-        self.characteristics = list(self._get_characteristics())
+        self._characteristics = self._get_characteristics()
+
+        self.characteristic = UUIDAccessor(self._characteristics)
+        self.characteristics = UUIDAccessor(self._characteristics, True)
 
     def shortest_uuid(self):
+        """Returns a string containing the shortest unique representation of the UUID.
+
+        Returns:
+            str: A textual representation of the UUID either in 16-bit form or 128-bit form
+        """
         if is_short_uuid(self.uuid):
             return str(self.uuid)[4:8]
         else:
             return str(self.uuid)
 
-    def _get_characteristics(self):
-        characteristics = self.device.requester.discover_characteristics(self.start, self.end)
+    def _discover_characteristics(self):
+        characteristics = {}
 
-        for i, char in enumerate(characteristics):
+        for i, char in enumerate(self.device.requester.discover_characteristics(self.start, self.end)):
             handle = char['handle']
             value_handle = char['value_handle']
             uuid = char['uuid']
@@ -60,22 +80,14 @@ class BLEService:
             else:
                 end_handle = characteristics[i + 1]['handle'] - 1
 
-            yield BLECharacteristic(self.device, handle, value_handle, end_handle, uuid, properties)
+            characteristic = BLECharacteristic(self.device, handle, value_handle, end_handle, UUID(uuid), properties)
 
-    def get_characteristics(self, uuid):
-        return [c for c in self.characteristics if c.uuid == uuid]
+            if characteristic.uuid not in characteristics:
+                characteristics[characteristic.uuid] = [characteristic]
+            else:
+                characteristics[characteristic.uuid].append(characteristic)
 
-    def get_characteristic(self, uuid):
-        # TODO: make this neater, by using a dictionary of lists
-        matching = self.get_characteristics(uuid)
-
-        if len(matching) == 0:
-            raise RuntimeError("characteristic not found.")
-        elif len(matching) > 1:
-            # technically, there could be too few also :)
-            raise RuntimeError("too many characteristics with this uuid")
-
-        return matching[0]
+        return characteristics
 
     def __repr__(self):
         return self.shortest_uuid() if self.shortest_uuid() not in SERVICE_UUIDS else SERVICE_UUIDS[self.shortest_uuid()]['name']
