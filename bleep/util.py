@@ -27,13 +27,80 @@ import os
 
 BASE_UUID = UUID("00000000-0000-1000-8000-00805F9B34FB")
 
-CHAR_UUIDS = json.load(open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'chars.json')))
-SERVICE_UUIDS = json.load(open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'services.json')))
-DESC_UUIDS = json.load(open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'descriptors.json')))
+def merge_dicts(*dict_args):
+    '''
+    Given any number of dicts, shallow copy and merge into a new dict,
+    precedence goes to key value pairs in latter dicts.
+    '''
+    result = {}
+    for dictionary in dict_args:
+        result.update(dictionary)
+    return result
+
+class BLEUUID(object):
+    BASE_UUID_BYTES = bytearray(BASE_UUID.bytes)
+
+    CHAR_UUIDS = json.load(open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'chars.json')))
+    SERVICE_UUIDS = json.load(open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'services.json')))
+    DESC_UUIDS = json.load(open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'descriptors.json')))
+
+    UUID_LOOKUP = merge_dicts(CHAR_UUIDS, SERVICE_UUIDS, DESC_UUIDS)
+
+    def __init__(self, uuid):
+        self._uuid = BLEUUID.BASE_UUID_BYTES
+
+        if isinstance(uuid, UUID):
+            # Assume that the UUID is correct
+            self._uuid = bytearray(uuid.bytes)
+        elif isinstance(uuid, str):
+            if len(uuid) == 4:
+                # 16-bit UUID
+                part = int(uuid, 16).to_bytes(2, 'little')
+                self._uuid[2:4] = bytearray(part)
+            elif len(uuid) == 8:
+                # 32-bit UUID
+                part = int(uuid, 16).to_bytes(4, 'little')
+                self._uuid[0:4] = bytearray(part)
+            elif len(uuid) == 36:
+                # 128-bit UUID
+                self._uuid = bytearray(UUID(uuid).bytes)
+            else:
+                raise ValueError("Invalid UUID")
+        elif isinstance(uuid, int):
+            if uuid < 65536:
+                part = int(uuid).to_bytes(2, 'little')
+                self._uuid[2:4] = bytearray(part)
+            elif uuid < 2**32:
+                part = int(uuid).to_bytes(4, 'little')
+                self._uuid[0:4] = bytearray(part)
+            else:
+                raise ValueError("Invalid UUID")
+
+    def full_uuid(self):
+        return str(UUID(bytes=str(self._uuid)))
+
+    def canonical_str(self):
+        if self._uuid[4:] == BLEUUID.BASE_UUID_BYTES[4:]:
+            # At least a 32-bit UUID
+            if self._uuid[:2] == BLEUUID.BASE_UUID_BYTES[:2]:
+                # 16-bit UUID
+                return self.full_uuid()[4:8]
+            else:
+                return self.full_uuid()[:8]
+        else:
+            return self.full_uuid()
+
+    def __str__(self):
+        c_str = self.canonical_str()
+        return c_str if c_str not in BLEUUID.UUID_LOOKUP else BLEUUID.UUID_LOOKUP[c_str]['name']
+
+    def __repr__(self):
+        return "BLEUUID('%s')" % self.full_uuid()
 
 class UUIDAccessor(object):
     def __init__(self, data, all = False):
         self.data = data
+        self.all = all
 
     def __iter__(self):
         for obj in self.data.itervalues():
@@ -41,11 +108,8 @@ class UUIDAccessor(object):
                 yield item
 
     def __getitem__(self, uuid):
-        if uuid not in self.data:
-            if UUID(uuid) not in self.data:
-                raise KeyError(uuid)
-
-            uuid = UUID(uuid)
+        if not isinstance(uuid, BLEUUID):
+            uuid = BLEUUID(uuid)
 
         if self.all:
             return self.data[uuid]
@@ -54,6 +118,3 @@ class UUIDAccessor(object):
             return self.data[uuid][0]
         else:
             raise KeyError("More than one instance of %s" % uuid)
-
-def is_short_uuid(uuid):
-    return all(BASE_UUID.fields[x] == uuid.fields[x] for x in range(1, 6))

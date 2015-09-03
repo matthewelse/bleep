@@ -20,9 +20,7 @@ from __future__ import absolute_import
 from future.utils import bytes_to_native_str, native_str_to_bytes
 from future.builtins import int, bytes
 
-from uuid import UUID
-
-from ..util import is_short_uuid, DESC_UUIDS, CHAR_UUIDS, UUIDAccessor
+from ..util import BLEUUID, UUIDAccessor
 
 class GATTAttribute(object):
     """Represents a single GATT Attribute (either a Descriptor or a Characteristic)
@@ -30,7 +28,7 @@ class GATTAttribute(object):
     Attributes:
         device (BLEDevice): The root BLEDevice object
         value_handle (int): This attribute's value handle
-        uuid (UUID):        This attribute's UUID
+        uuid (BLEUUID):        This attribute's UUID
     """
 
     def __init__(self, device, handle, uuid):
@@ -42,7 +40,7 @@ class GATTAttribute(object):
         Args:
             device (BLEDevice): BLEDevice object of which this is an attribute
             handle (int): The numeric handle represented by this object
-            uuid (UUID): The uuid representing this particular attribute
+            uuid (BLEUUID): The uuid representing this particular attribute
         """
         self.device = device
         self.value_handle = handle
@@ -54,17 +52,6 @@ class GATTAttribute(object):
         # Allow us to propagate callbacks
         self._notification_callbacks = []
         self._indication_callbacks = []
-
-    def shortest_uuid(self):
-        """Returns a string containing the shortest unique representation of the UUID.
-
-        Returns:
-            str: A textual representation of the UUID either in 16-bit form or 128-bit form
-        """
-        if is_short_uuid(self.uuid):
-            return str(self.uuid)[4:8]
-        else:
-            return str(self.uuid)
 
     def read(self):
         """Reads the value of this attribute from the device. (Blocking)
@@ -111,7 +98,7 @@ class GATTAttribute(object):
             callback(data)
 
     def __repr__(self):
-        raise NotImplementedError()
+        return str(self.uuid)
 
 class GATTDescriptor(GATTAttribute):
     """Represents a single BLE Descriptor"""
@@ -122,12 +109,9 @@ class GATTDescriptor(GATTAttribute):
         Args:
             device (BLEDevice): BLEDevice object of which this is an descriptor
             handle (int): The numeric handle represented by this object
-            uuid (UUID): The uuid representing this particular descriptor
+            uuid (BLEUUID): The uuid representing this particular descriptor
         """
         super(GATTDescriptor, self).__init__(device, handle, uuid)
-
-    def __repr__(self):
-        return '%s' % self.shortest_uuid() if self.shortest_uuid() not in DESC_UUIDS else DESC_UUIDS[self.shortest_uuid()]['name']
 
 class GATTCharacteristic(GATTAttribute):
     """Represents a single BLE Characteristic
@@ -148,7 +132,7 @@ class GATTCharacteristic(GATTAttribute):
         Args:
             device (BLEDevice): BLEDevice object of which this is an descriptor
             handle (int): The numeric handle represented by this object
-            uuid (UUID): The uuid representing this particular descriptor
+            uuid (BLEUUID): The uuid representing this particular descriptor
         """
         super(GATTCharacteristic, self).__init__(device, value_handle, uuid)
 
@@ -169,7 +153,7 @@ class GATTCharacteristic(GATTAttribute):
 
         try:
             for descriptor in self.device.requester.discover_descriptors(self.value_handle + 1, self.end_handle):
-                desc = GATTDescriptor(self.device, descriptor['handle'], UUID(descriptor['uuid']))
+                desc = GATTDescriptor(self.device, descriptor['handle'], BLEUUID(descriptor['uuid']))
 
                 if desc.uuid in descriptors:
                     descriptors[desc.uuid].append(desc)
@@ -181,6 +165,3 @@ class GATTCharacteristic(GATTAttribute):
             pass
 
         return descriptors
-
-    def __repr__(self):
-        return self.shortest_uuid() if self.shortest_uuid() not in CHAR_UUIDS else CHAR_UUIDS[self.shortest_uuid()]['name']

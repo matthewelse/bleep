@@ -20,13 +20,12 @@ from __future__ import absolute_import
 from future.utils import bytes_to_native_str, native_str_to_bytes
 from future.builtins import int, bytes
 
-from uuid import UUID
 from threading import Event
 
 from .backend import DiscoveryService
 from .requester import Requester
 
-from .util import UUIDAccessor
+from .util import BLEUUID, UUIDAccessor
 from .gatt.service import GATTService
 
 class BLEDevice(object):
@@ -155,7 +154,7 @@ class BLEDevice(object):
             start = service['start']
             end = service['end']
 
-            uuid = UUID(service['uuid'])
+            uuid = BLEUUID(service['uuid'])
 
             serv = GATTService(self, uuid, start, end)
 

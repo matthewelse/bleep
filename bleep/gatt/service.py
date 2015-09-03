@@ -20,10 +20,8 @@ from __future__ import absolute_import
 from future.utils import bytes_to_native_str, native_str_to_bytes
 from future.builtins import int, bytes
 
-from uuid import UUID
-
 from .characteristic import GATTCharacteristic
-from ..util import is_short_uuid, SERVICE_UUIDS, UUIDAccessor
+from ..util import BLEUUID, UUIDAccessor
 
 class GATTService(object):
     """Represents a single BLE Characteristic
@@ -40,7 +38,7 @@ class GATTService(object):
 
         Args:
             device (BLEDevice): BLEDevice object of which this is an attribute
-            uuid (UUID): The uuid representing this particular attribute
+            uuid (BLEUUID): The uuid representing this particular attribute
             start (int): The first handle of this service
             end (int): The last handle in this service
         """
@@ -54,17 +52,6 @@ class GATTService(object):
 
         self.characteristic = UUIDAccessor(self._characteristics)
         self.characteristics = UUIDAccessor(self._characteristics, True)
-
-    def shortest_uuid(self):
-        """Returns a string containing the shortest unique representation of the UUID.
-
-        Returns:
-            str: A textual representation of the UUID either in 16-bit form or 128-bit form
-        """
-        if is_short_uuid(self.uuid):
-            return str(self.uuid)[4:8]
-        else:
-            return str(self.uuid)
 
     def _discover_characteristics(self):
         characteristics = {}
@@ -81,7 +68,7 @@ class GATTService(object):
             else:
                 end_handle = raw_chars[i + 1]['handle'] - 1
 
-            characteristic = GATTCharacteristic(self.device, handle, value_handle, end_handle, UUID(uuid), properties)
+            characteristic = GATTCharacteristic(self.device, handle, value_handle, end_handle, BLEUUID(uuid), properties)
 
             if characteristic.uuid not in characteristics:
                 characteristics[characteristic.uuid] = [characteristic]
@@ -91,4 +78,4 @@ class GATTService(object):
         return characteristics
 
     def __repr__(self):
-        return self.shortest_uuid() if self.shortest_uuid() not in SERVICE_UUIDS else SERVICE_UUIDS[self.shortest_uuid()]['name']
+        return str(self.uuid)
