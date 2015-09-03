@@ -42,7 +42,7 @@ OTHER_OS_MESSAGE = """
     """
 
 # check that this is being installed on Mac OS X.
-check_system(['darwin', 'linux'], OTHER_OS_MESSAGE)
+check_system(['darwin', 'linux2', 'linux'], OTHER_OS_MESSAGE)
 
 if sys.platform == 'darwin':
     platform_dependencies = ['pygattosx']
