@@ -17,6 +17,11 @@
 from setuptools import setup, find_packages
 
 import sys
+import os
+
+# Utility function to cat in a file (used for the README)
+def read(fname):
+    return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 def check_system(systems, message):
     import sys
@@ -55,10 +60,10 @@ setup(
     setup_requires=['setuptools_scm!=1.5.3,!=1.5.4'],
     author = "Matthew Else",
     author_email = "matthew.else@arm.com",
-    description = "Python BLE API",
+    description = read('README.md'),
     license = "Apache-2.0",
     keywords = "ble",
-    url = "about:blank",
+    url = "https://github.com/matthewelse/bleep",
     packages = find_packages(),
     package_data = {
         'bleep': ['data/*.json']
