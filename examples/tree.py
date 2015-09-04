@@ -27,7 +27,9 @@ if __name__ == "__main__":
     address = args.mac
 
     for device in BLEDevice.discoverDevices():
-        if device.address != address:
+        print(device.address)
+
+        if str(device.address) != address:
             continue
 
         print(device)
