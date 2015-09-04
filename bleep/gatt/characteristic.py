@@ -152,7 +152,10 @@ class GATTCharacteristic(GATTAttribute):
             return descriptors
 
         try:
-            for descriptor in self.device.requester.discover_descriptors(self.value_handle + 1, self.end_handle):
+            print("Discovering Descriptors between %i and %i" % (self.value_handle + 1, self.end_handle))
+            discovered = self.device.requester.discover_descriptors(self.value_handle + 1, self.end_handle)
+            print("Discovered", discovered)
+            for descriptor in discovered:
                 desc = GATTDescriptor(self.device, descriptor['handle'], BLEUUID(descriptor['uuid']))
 
                 if desc.uuid in descriptors:

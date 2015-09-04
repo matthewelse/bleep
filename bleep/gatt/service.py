@@ -55,7 +55,10 @@ class GATTService(object):
 
     def _discover_characteristics(self):
         characteristics = {}
+
+        print("Discovering Characteristics")
         raw_chars = self.device.requester.discover_characteristics(self.start, self.end)
+        print("Discovered: ", raw_chars)
 
         for i, char in enumerate(raw_chars):
             handle = char['handle']

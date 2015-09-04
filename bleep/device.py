@@ -147,8 +147,13 @@ class BLEDevice(object):
 
         self.requester.connect(True, "random")
 
+        print("Connected.")
+        print("Discovering Primary Services")
+
         # discover services
         primary = self.requester.discover_primary()
+
+        print("Discovered services:", primary)
 
         for service in primary:
             start = service['start']
@@ -164,6 +169,8 @@ class BLEDevice(object):
                 self._services[uuid] = [serv]
             else:
                 self._services[uuid].append(serv)
+
+        print("Connected Successfully.")
 
     def disconnect(self):
         """Disconnect from the device"""
@@ -218,6 +225,8 @@ class BLEDevice(object):
 
             if filter(dev):
                 yield dev
+
+        del discovery
 
     @staticmethod
     def discoverDevices(device='hci0', timeout=5, filter=lambda x: True):
