@@ -102,6 +102,15 @@ class BLEUUID(object):
     def __repr__(self):
         return "BLEUUID('%s')" % self.full_uuid_str()
 
+    def __hash__(self):
+        return hash(bytes(self._uuid))
+
+    def __eq__(x, y):
+        if not isinstance(y, BLEUUID):
+            y = BLEUUID(y)
+
+        return bytes(x._uuid) == bytes(y._uuid)
+
 class UUIDAccessor(object):
     def __init__(self, data, all = False):
         self.data = data

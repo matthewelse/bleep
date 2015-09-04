@@ -36,12 +36,10 @@ sudo python setup.py install
 
 This will build the dynamic library, and install the python package.
 
-You can then install bleep in much the same way:
+You can then install bleep easily:
 
 ```bash
-git clone https://github.com/matthewelse/bleep.git
-cd bleep
-sudo python setup.py install
+sudo pip install bleep
 ```
 
 If you want to develop bleep, instead of the last line, run:
