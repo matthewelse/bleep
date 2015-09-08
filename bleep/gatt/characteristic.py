@@ -22,6 +22,8 @@ from future.builtins import int, bytes
 
 from ..util import BLEUUID, UUIDAccessor
 
+import logging
+
 class GATTAttribute(object):
     """Represents a single GATT Attribute (either a Descriptor or a Characteristic)
 
@@ -134,6 +136,8 @@ class GATTCharacteristic(GATTAttribute):
             handle (int): The numeric handle represented by this object
             uuid (BLEUUID): The uuid representing this particular descriptor
         """
+        self.logger = logging.getLogger('bleep.GATTCharacteristic')
+
         super(GATTCharacteristic, self).__init__(device, value_handle, uuid)
 
         self.handle = handle
@@ -152,9 +156,9 @@ class GATTCharacteristic(GATTAttribute):
             return descriptors
 
         try:
-            print("Discovering Descriptors between %i and %i" % (self.value_handle + 1, self.end_handle))
+            self.logger.debug("Discovering Descriptors between %i and %i", self.value_handle + 1, self.end_handle)
             discovered = self.device.requester.discover_descriptors(self.value_handle + 1, self.end_handle)
-            print("Discovered", discovered)
+            self.logger.debug("Discovered %s", discovered)
             for descriptor in discovered:
                 desc = GATTDescriptor(self.device, descriptor['handle'], BLEUUID(descriptor['uuid']))
 

@@ -23,6 +23,8 @@ from future.builtins import int, bytes
 from .characteristic import GATTCharacteristic
 from ..util import BLEUUID, UUIDAccessor
 
+import logging
+
 class GATTService(object):
     """Represents a single BLE Characteristic
 
@@ -42,6 +44,8 @@ class GATTService(object):
             start (int): The first handle of this service
             end (int): The last handle in this service
         """
+        self.logger = logging.getLogger('bleep.GATTService')
+
         self.device = device
         self.uuid = uuid
 
@@ -56,9 +60,9 @@ class GATTService(object):
     def _discover_characteristics(self):
         characteristics = {}
 
-        print("Discovering Characteristics")
+        self.logger.debug("Discovering Characteristics")
         raw_chars = self.device.requester.discover_characteristics(self.start, self.end)
-        print("Discovered: ", raw_chars)
+        self.logger.debug("Discovered: %s", raw_chars)
 
         for i, char in enumerate(raw_chars):
             handle = char['handle']

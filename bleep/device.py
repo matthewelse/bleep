@@ -28,6 +28,8 @@ from .requester import Requester
 from .util import BLEUUID, UUIDAccessor
 from .gatt.service import GATTService
 
+import logging
+
 class BLEDevice(object):
     """Represents a single BLE Device
 
@@ -77,6 +79,8 @@ class BLEDevice(object):
         self._notification_callbacks = []
 
         self.handles = {}
+
+        self.logger = logging.getLogger('bleep.BLEDevice')
 
     def register_handle(self, handle, attribute):
         """Registers a handle to receive callbacks when notifications or indications occur
@@ -130,6 +134,8 @@ class BLEDevice(object):
         self._notification_callbacks.append(function)
 
     def _on_notification(self, handle, data):
+        self.logger.debug("Notification received on handle: %i", handle)
+        self.logger.debug("Notification data: %s", data)
         # propagate event to attributes
         for attr_handle, attribute in self.handles.iteritems():
             if handle == attr_handle:
@@ -147,13 +153,13 @@ class BLEDevice(object):
 
         self.requester.connect(True, "random")
 
-        print("Connected.")
-        print("Discovering Primary Services")
+        self.logger.debug("Connected.")
+        self.logger.debug("Discovering Primary Services")
 
         # discover services
         primary = self.requester.discover_primary()
 
-        print("Discovered services:", primary)
+        self.logger.debug("Discovered services: %s", primary)
 
         for service in primary:
             start = service['start']
@@ -170,7 +176,7 @@ class BLEDevice(object):
             else:
                 self._services[uuid].append(serv)
 
-        print("Connected Successfully.")
+        self.logger.debug("Connected Successfully.")
 
     def disconnect(self):
         """Disconnect from the device"""
@@ -203,6 +209,8 @@ class BLEDevice(object):
             data (bytes): Data to be written
             response (bool): Whether or not the data should be written with response
         """
+        self.logger.debug("Writing data%s to handle: 0x%x", '' if response else ' without response', handle)
+
         if isinstance(data, bytes):
             return self._write_handle(handle, data, response)
         else:
