@@ -111,6 +111,10 @@ class BLEUUID(object):
 
         return bytes(x._uuid) == bytes(y._uuid)
 
+    def __ne__(x, y):
+        return not BLEUUID.__eq__(x, y)
+
+
 class UUIDAccessor(object):
     def __init__(self, data, all = False):
         self.data = data
