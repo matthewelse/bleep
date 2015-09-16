@@ -70,10 +70,7 @@ class BLEDevice(object):
         self.service = UUIDAccessor(self._services)
         self.services = UUIDAccessor(self._services, True)
 
-        self.requester = Requester(address, False)
-
-        self.requester.indicate(self._on_indication)
-        self.requester.notify(self._on_notification)
+        self.requester = None
 
         self._indication_callbacks = []
         self._notification_callbacks = []
@@ -151,6 +148,11 @@ class BLEDevice(object):
         if self.connected:
             return
 
+        self.requester = Requester(self.address, False)
+
+        self.requester.indicate(self._on_indication)
+        self.requester.notify(self._on_notification)
+
         self.requester.connect(True, "random")
 
         self.logger.debug("Connected.")
@@ -180,12 +182,16 @@ class BLEDevice(object):
 
     def disconnect(self):
         """Disconnect from the device"""
-        self.requester.disconnect()
+        if self.connected:
+            self.requester.disconnect()
 
     @property
     def connected(self):
         """bool: Whether or not this device is currently connected"""
-        return self.requester.is_connected()
+        if self.requester is not None:
+            return self.requester.is_connected()
+        else:
+            return False
 
     def read_handle(self, handle):
         """Read from a specific handle. (Blocking)

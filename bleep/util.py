@@ -22,6 +22,8 @@ from future.builtins import int, bytes
 
 from uuid import UUID
 
+from copy import copy
+
 import json
 import os
 
@@ -48,11 +50,13 @@ class BLEUUID(object):
     UUID_LOOKUP = merge_dicts(CHAR_UUIDS, SERVICE_UUIDS, DESC_UUIDS)
 
     def __init__(self, uuid):
-        self._uuid = BLEUUID.BASE_UUID_BYTES
+        self._uuid = copy(BLEUUID.BASE_UUID_BYTES)
 
         if isinstance(uuid, UUID):
             # Assume that the UUID is correct
             self._uuid = bytearray(uuid.bytes)
+        elif isinstance(uuid, bytes):
+            self._uuid[2:4] = bytearray(bytes_to_native_str(uuid))
         elif isinstance(uuid, str):
             if len(uuid) == 4:
                 # 16-bit UUID
@@ -78,6 +82,8 @@ class BLEUUID(object):
                 self._uuid[0:4] = bytearray(part)
             else:
                 raise ValueError("Invalid UUID")
+        else:
+            raise ValueError("Invalid UUID (type error)")
 
     def full_uuid_str(self):
         """Return a string representation of the full UUID (128-bit)"""

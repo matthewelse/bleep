@@ -17,6 +17,9 @@
 import argparse
 from bleep import BLEDevice
 
+import logging
+#logging.basicConfig(level=logging.DEBUG)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Produce a tree of a BLE Device')
 
@@ -27,12 +30,8 @@ if __name__ == "__main__":
     address = args.mac
 
     for device in BLEDevice.discoverDevices():
-        print(device.address)
-
         if str(device.address) != address:
             continue
-
-        print(device)
 
         try:
             print("Attempting to connect to %s" % device.address)
@@ -49,10 +48,10 @@ if __name__ == "__main__":
 
             break
         except:
-            device.requester.disconnect()
+            device.disconnect()
             raise
         finally:
-            device.requester.disconnect()
+            device.disconnect()
     else:
         # break didn't get called
         print('Device not Found')
