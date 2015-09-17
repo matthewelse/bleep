@@ -61,7 +61,7 @@ class GATTAttribute(object):
         Returns:
             bytes: Data read from the device
         """
-        return self.device.read_handle(self.value_handle)
+        return self.device.read_handle(handle=self.value_handle, attribute=self)
 
     def write(self, data, response=True):
         """Writes data to the device. (Blocking)
@@ -71,7 +71,7 @@ class GATTAttribute(object):
             response (Optional[bool]): Whether the data should be written with, or
                 without response.
         """
-        return self.device.write_handle(self.value_handle, data, response)
+        return self.device.write_handle(handle=self.value_handle, data=data, attribute=self, response=response)
 
     def notify(self, function):
         """Register a function to be called when a notification is received.
@@ -100,7 +100,7 @@ class GATTAttribute(object):
             callback(data)
 
     def __repr__(self):
-        return str(self.uuid)
+        return "%s (%i)" % (str(self.uuid), self.value_handle)
 
 class GATTDescriptor(GATTAttribute):
     """Represents a single BLE Descriptor"""
@@ -157,7 +157,7 @@ class GATTCharacteristic(GATTAttribute):
 
         try:
             self.logger.debug("Discovering Descriptors between %i and %i", self.value_handle + 1, self.end_handle)
-            discovered = self.device.requester.discover_descriptors(self.value_handle + 1, self.end_handle)
+            discovered = self.device.requester.discover_descriptors(start=self.value_handle + 1, end=self.end_handle, characteristic=self)
             self.logger.debug("Discovered %s", discovered)
             for descriptor in discovered:
                 desc = GATTDescriptor(self.device, descriptor['handle'], BLEUUID(descriptor['uuid']))

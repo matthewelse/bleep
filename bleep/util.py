@@ -55,9 +55,9 @@ class BLEUUID(object):
         if isinstance(uuid, UUID):
             # Assume that the UUID is correct
             self._uuid = bytearray(uuid.bytes)
-        elif isinstance(uuid, bytes):
+        elif type(uuid) == type(bytes()):
             self._uuid[2:4] = bytearray(bytes_to_native_str(uuid))
-        elif isinstance(uuid, str):
+        elif type(uuid) == type(str()):
             if len(uuid) == 4:
                 # 16-bit UUID
                 part = int(uuid, 16).to_bytes(2, 'little')
@@ -87,6 +87,7 @@ class BLEUUID(object):
 
     def full_uuid_str(self):
         """Return a string representation of the full UUID (128-bit)"""
+        print(self._uuid)
         return str(UUID(bytes=str(self._uuid)))
 
     def canonical_str(self):

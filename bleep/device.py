@@ -153,6 +153,8 @@ class BLEDevice(object):
         self.requester.indicate(self._on_indication)
         self.requester.notify(self._on_notification)
 
+        self.logger.debug("Connecting!")
+
         self.requester.connect(True, "random")
 
         self.logger.debug("Connected.")
@@ -193,21 +195,21 @@ class BLEDevice(object):
         else:
             return False
 
-    def read_handle(self, handle):
+    def read_handle(self, handle, attribute):
         """Read from a specific handle. (Blocking)
 
         Args:
             handle (int): The handle to read from
         """
-        return self.requester.read_by_handle(handle)[0]
+        return self.requester.read_by_handle(handle=handle, attribute=attribute)[0]
 
-    def _write_handle(self, handle, data, response=True):
+    def _write_handle(self, handle, data, attribute, response=True):
         if response:
-            return self.requester.write_by_handle(handle, bytes_to_native_str(data))
+            return self.requester.write_by_handle(handle=handle, data=bytes_to_native_str(data), attribute=attribute)
         else:
-            return self.requester.write_without_response_by_handle(handle, bytes_to_native_str(data))
+            return self.requester.write_without_response_by_handle(handle=handle, data=bytes_to_native_str(data), attribute=attribute)
 
-    def write_handle(self, handle, data, response=True):
+    def write_handle(self, handle, data, attribute, response=True):
         """Write to a specific handle. (Blocking)
 
         Args:
@@ -218,7 +220,7 @@ class BLEDevice(object):
         self.logger.debug("Writing data%s to handle: 0x%x", '' if response else ' without response', handle)
 
         if isinstance(data, bytes):
-            return self._write_handle(handle, data, response)
+            return self._write_handle(handle, data, attribute, response)
         else:
             raise NotImplementedError("Unsupported data type")
 

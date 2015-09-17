@@ -20,3 +20,4 @@ from bleep import BLEDevice
 if __name__ == "__main__":
     for device in BLEDevice.discoverDevices():
         print(device)
+        print(device.serviceUUIDs)
