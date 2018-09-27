@@ -57,7 +57,7 @@ This will cause any changes you make to bleep to be reflected when you import th
 Installation on Mac OS X is very simple:
 
 ```bash
-brew install python-boost
+brew install boost-python
 
 git clone https://github.com/matthewelse/bleep.git
 cd bleep
