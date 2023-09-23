@@ -130,7 +130,7 @@ impl BlePeripheral {
 
             Ok(services
                 .into_iter()
-                .map(|x| BleService(x))
+                .map(BleService)
                 .collect::<BTreeSet<_>>())
         })
     }
@@ -289,8 +289,9 @@ struct BleManager(Arc<Manager>);
 
 #[pymethods]
 impl BleManager {
+    #[allow(clippy::new_ret_no_self)]
     #[staticmethod]
-    fn new<'a>(py: Python<'a>) -> PyResult<&'a PyAny> {
+    fn new(py: Python<'_>) -> PyResult<&PyAny> {
         pyo3_asyncio::tokio::future_into_py(py, async {
             Ok(BleManager(Arc::new(
                 Manager::new()
