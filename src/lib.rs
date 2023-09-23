@@ -3,11 +3,12 @@ use std::{collections::BTreeSet, sync::Arc};
 use btleplug::{
     api::{
         Central, Characteristic, Descriptor, Manager as _, Peripheral as _, PeripheralProperties,
-        ScanFilter, Service,
+        ScanFilter, Service, ValueNotification, WriteType,
     },
     platform::{Adapter, Manager, Peripheral, PeripheralId},
 };
 use pyo3::{exceptions::PyValueError, prelude::*};
+use tokio_stream::StreamExt;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[pyclass]
@@ -94,6 +95,10 @@ impl BlePeripheralProperties {
 
 #[derive(Debug)]
 #[pyclass]
+struct BleValueNotification(ValueNotification);
+
+#[derive(Debug)]
+#[pyclass]
 struct BlePeripheral(Arc<Peripheral>);
 
 #[pymethods]
@@ -156,6 +161,71 @@ impl BlePeripheral {
 
     fn address(&self) -> String {
         self.0.address().to_string()
+    }
+
+    fn write<'a>(
+        &self,
+        py: Python<'a>,
+        characteristic: BleCharacteristic,
+        data: Vec<u8>,
+        with_response: bool,
+    ) -> PyResult<&'a PyAny> {
+        let peripheral = self.0.clone();
+        let characteristic = characteristic.0;
+        pyo3_asyncio::tokio::future_into_py(py, async move {
+            peripheral
+                .write(
+                    &characteristic,
+                    &data,
+                    if with_response {
+                        WriteType::WithResponse
+                    } else {
+                        WriteType::WithoutResponse
+                    },
+                )
+                .await
+                .map_err(|x| PyValueError::new_err(x.to_string()))?;
+
+            Ok(())
+        })
+    }
+
+    fn read<'a>(&self, py: Python<'a>, characteristic: BleCharacteristic) -> PyResult<&'a PyAny> {
+        let peripheral = self.0.clone();
+        let characteristic = characteristic.0;
+        pyo3_asyncio::tokio::future_into_py(py, async move {
+            peripheral
+                .read(&characteristic)
+                .await
+                .map_err(|x| PyValueError::new_err(x.to_string()))
+        })
+    }
+
+    fn register_notification_callback<'a>(
+        &self,
+        py: Python<'a>,
+        // TODO: check the type of `Callback` before doing all of this async stuff.
+        callback: PyObject,
+    ) -> PyResult<&'a PyAny> {
+        let peripheral = self.0.clone();
+        pyo3_asyncio::tokio::future_into_py(py, async move {
+            let mut stream = peripheral
+                .notifications()
+                .await
+                .map_err(|x| PyValueError::new_err(x.to_string()))?;
+
+            tokio::spawn(async move {
+                while let Some(item) = stream.next().await {
+                    Python::with_gil(|py| {
+                        // TODO: handle exceptions here better.
+                        let _: PyResult<PyObject> =
+                            callback.call(py, (item.uuid.to_string(), item.value), None);
+                    })
+                }
+            });
+
+            Ok(())
+        })
     }
 
     fn __repr__(&self) -> String {
