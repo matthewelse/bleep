@@ -1,4 +1,4 @@
-use std::{collections::BTreeSet, sync::Arc};
+use std::{borrow::Cow, collections::BTreeSet, sync::Arc};
 
 use btleplug::{
     api::{
@@ -7,6 +7,7 @@ use btleplug::{
     },
     platform::{Adapter, Manager, Peripheral, PeripheralId},
 };
+use log::debug;
 use pyo3::{exceptions::PyValueError, prelude::*};
 use tokio_stream::StreamExt;
 
@@ -199,11 +200,33 @@ impl BlePeripheral {
     }
 
     fn read<'a>(&self, py: Python<'a>, characteristic: BleCharacteristic) -> PyResult<&'a PyAny> {
+        // debug!("Reading from characteristic: {self:?}");
         let peripheral = self.0.clone();
         let characteristic = characteristic.0;
         pyo3_asyncio::tokio::future_into_py(py, async move {
-            peripheral
+            debug!("Attempting to read from peripheral. {characteristic:?}");
+            let bytes = peripheral
                 .read(&characteristic)
+                .await
+                .map_err(|x| PyValueError::new_err(x.to_string()))?;
+
+            // Return a Cow<[u8]> to force this into a bytes object in Python.
+            Ok(Cow::from(bytes))
+        })
+    }
+
+    fn subscribe<'a>(
+        &self,
+        py: Python<'a>,
+        characteristic: BleCharacteristic,
+    ) -> PyResult<&'a PyAny> {
+        debug!("Subscribing to notifications and/or indications from characteristic: {characteristic:?}");
+        let peripheral = self.0.clone();
+        let characteristic = characteristic.0;
+        pyo3_asyncio::tokio::future_into_py(py, async move {
+            debug!("Attempting to subscribe to notifications and/or indications from peripheral. {characteristic:?}");
+            peripheral
+                .subscribe(&characteristic)
                 .await
                 .map_err(|x| PyValueError::new_err(x.to_string()))
         })
@@ -226,8 +249,9 @@ impl BlePeripheral {
                 while let Some(item) = stream.next().await {
                     Python::with_gil(|py| {
                         // TODO: handle exceptions here better.
-                        let _: PyResult<PyObject> =
+                        let result =
                             callback.call(py, (item.uuid.to_string(), item.value), None);
+                        debug!("{result:?}");
                     })
                 }
             });
@@ -330,6 +354,8 @@ impl BleManager {
 
 #[pymodule]
 fn bleep(_py: Python, m: &PyModule) -> PyResult<()> {
+    pyo3_log::init();
+
     m.add_class::<BleManager>()?;
     m.add_class::<BleAdapter>()?;
     m.add_class::<BlePeripheral>()?;

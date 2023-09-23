@@ -36,6 +36,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "arc-swap"
+version = "1.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bddcadddf5e9015d310179a59bb28c4d4b9920ad0f11e8e14dbadf654890c9a6"
+
+[[package]]
 name = "async-trait"
 version = "0.1.73"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -119,8 +125,10 @@ name = "bleep"
 version = "0.1.0"
 dependencies = [
  "btleplug",
+ "log",
  "pyo3",
  "pyo3-asyncio",
+ "pyo3-log",
  "tokio",
  "tokio-stream",
  "xpc-connection",
@@ -165,8 +173,6 @@ dependencies = [
 [[package]]
 name = "btleplug"
 version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba674f1e8564205eeb1406abca78f3f4beff2408ad6b06a970da23fadeba2534"
 dependencies = [
  "async-trait",
  "bitflags 2.4.0",
@@ -972,6 +978,17 @@ checksum = "e53cee42e77ebe256066ba8aa77eff722b3bb91f3419177cf4cd0f304d3284d9"
 dependencies = [
  "libc",
  "pyo3-build-config",
+]
+
+[[package]]
+name = "pyo3-log"
+version = "0.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f47b0777feb17f61eea78667d61103758b243a871edc09a7786500a50467b605"
+dependencies = [
+ "arc-swap",
+ "log",
+ "pyo3",
 ]
 
 [[package]]

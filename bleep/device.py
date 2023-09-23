@@ -15,6 +15,7 @@
 import asyncio
 import logging
 from typing import Optional
+from bleep.gatt.characteristic import GATTCharacteristic
 
 from bleep.gatt.service import GATTService
 
@@ -58,7 +59,7 @@ class BLEDevice(object):
         return self.properties.local_name()
 
     async def on_notification(self, f):
-        pass
+        await self.peripheral.register_notification_callback(f)
 
     async def connect(self):
         """Connect to the device"""
@@ -75,22 +76,22 @@ class BLEDevice(object):
             await self.peripheral.disconnect()
             self.connected = False
 
-    async def read(self, characteristic : BleCharacteristic):
-        """Read from a specific handle."""
-        return await self.peripheral.read(characteristic)
+    async def read(self, characteristic : GATTCharacteristic):
+        return await self.peripheral.read(characteristic.characteristic)
 
     async def write(
-        self, characteristic: BleCharacteristic, data: bytes, response: bool = True
+        self, characteristic: GATTCharacteristic, data: bytes, response: bool = True
     ):
-        """Write to a specific handle. (Blocking)"""
-
         self.logger.debug(
-            "Writing data%s to characteristic: 0x%x",
+            "Writing data%s to characteristic: %r",
             "" if response else " without response",
             characteristic,
         )
 
-        await self.peripheral.write(characteristic, data, response)
+        await self.peripheral.write(characteristic.characteristic, data, response)
+    
+    async def subscribe(self, characteristic : GATTCharacteristic):
+        await self.peripheral.subscribe(characteristic.characteristic)
 
     def __repr__(self):
         return f"Device Name: {self.name} ({self.address})"
