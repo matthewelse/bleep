@@ -121,6 +121,8 @@ dependencies = [
  "btleplug",
  "pyo3",
  "pyo3-asyncio",
+ "tokio",
+ "tokio-stream",
  "xpc-connection",
 ]
 

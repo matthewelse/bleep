@@ -16,6 +16,10 @@ struct BleDescriptor(Descriptor);
 
 #[pymethods]
 impl BleDescriptor {
+    fn uuid(&self) -> String {
+        self.0.uuid.to_string()
+    }
+
     fn __repr__(&self) -> String {
         format!("{self:?}")
     }
@@ -33,6 +37,10 @@ impl BleCharacteristic {
             .iter()
             .map(|x| BleDescriptor(x.clone()))
             .collect()
+    }
+
+    fn uuid(&self) -> String {
+        self.0.uuid.to_string()
     }
 
     fn __repr__(&self) -> String {
@@ -330,5 +338,6 @@ fn bleep(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<BleService>()?;
     m.add_class::<BleCharacteristic>()?;
     m.add_class::<BleDescriptor>()?;
+    m.add_class::<BleValueNotification>()?;
     Ok(())
 }

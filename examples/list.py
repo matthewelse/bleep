@@ -14,9 +14,18 @@
  limitations under the License.
 """
 
-import argparse
+import asyncio
 from bleep import BLEDevice
+from bleep import BleManager
+
+
+async def main():
+    manager = await BleManager.new()
+    ads = await manager.adapters()
+
+    for device in await BLEDevice.discoverDevices(ads[0]):
+        print(device)
+
 
 if __name__ == "__main__":
-    for device in BLEDevice.discoverDevices():
-        print(device)
+    asyncio.run(main())
