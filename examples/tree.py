@@ -15,43 +15,49 @@
 """
 
 import argparse
-from bleep import BLEDevice
+import asyncio
+from bleep import BLEDevice, BleManager
 
-import logging
-#logging.basicConfig(level=logging.DEBUG)
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Produce a tree of a BLE Device')
+async def main(name):
+    manager = await BleManager.new()
+    ads = await manager.adapters()
 
-    parser.add_argument('mac', help='Target MAC Address')
-
-    args = parser.parse_args()
-
-    address = args.mac
-
-    for device in BLEDevice.discoverDevices():
-        if str(device.address) != address:
+    for device in await BLEDevice.discoverDevices(ads[0]):
+        if device.name != name:
             continue
 
         try:
-            print("Attempting to connect to %s" % device.address)
-            device.connect()
+            print("Attempting to connect to %s" % device.name)
+            await device.connect()
 
-            for service in device.services:
+            for service in await device.services():
                 print("  " + repr(service))
 
-                for characteristic in service.characteristics:
+                for characteristic in service.characteristics():
                     print("    " + repr(characteristic))
 
-                    for descriptor in characteristic.descriptors:
+                    for descriptor in characteristic.descriptors():
                         print("      " + repr(descriptor))
 
             break
-        except:
-            device.disconnect()
+        except Exception as e:
+            print(f"Disconnecting due to exception ({e})")
+            await device.disconnect()
             raise
         finally:
-            device.disconnect()
+            print("Disconnecting")
+            await device.disconnect()
     else:
         # break didn't get called
-        print('Device not Found')
+        print("Device not Found")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Produce a tree of a BLE Device")
+
+    parser.add_argument("name", help="Target device name")
+
+    args = parser.parse_args()
+
+    asyncio.run(main(args.name))

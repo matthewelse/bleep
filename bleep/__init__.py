@@ -1,6 +1,6 @@
 # bleep: BLE Abstraction Library for Python
 #
-# Copyright (c) 2015 Matthew Else
+# Copyright (c) 2015-2023 Matthew Else
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,4 +14,6 @@
 
 from .device import BLEDevice
 from .gatt.service import GATTService
-from .gatt.characteristic import GATTCharacteristic, GATTDescriptor
+from .gatt.characteristic import GATTCharacteristic
+
+from .bleep import *
