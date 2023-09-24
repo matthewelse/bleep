@@ -118,7 +118,7 @@ impl BlePeripheral {
 
     fn properties<'a>(&self, py: Python<'a>) -> PyResult<&'a PyAny> {
         let peripheral = self.0.clone();
-        
+
         pyo3_asyncio::tokio::future_into_py(py, async move {
             let properties = peripheral
                 .properties()
@@ -169,6 +169,17 @@ impl BlePeripheral {
                 .map_err(|x| PyValueError::new_err(x.to_string()))?;
 
             Ok(())
+        })
+    }
+
+    fn is_connected<'a>(&self, py: Python<'a>) -> PyResult<&'a PyAny> {
+        let peripheral = self.0.clone();
+
+        pyo3_asyncio::tokio::future_into_py(py, async move {
+            peripheral
+                .is_connected()
+                .await
+                .map_err(|x| PyValueError::new_err(x.to_string()))
         })
     }
 

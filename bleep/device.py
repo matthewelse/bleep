@@ -38,7 +38,6 @@ class BLEDevice(object):
 
         self.peripheral = peripheral
         self.properties = properties
-        self.connected = False
         self.logger = logging.getLogger("bleep.BLEDevice")
 
     @property
@@ -64,17 +63,16 @@ class BLEDevice(object):
     async def connect(self):
         """Connect to the device"""
 
-        if self.connected:
+        if await self.peripheral.is_connected():
             return
 
         await self.peripheral.connect()
-        self.connected = True
 
     async def disconnect(self):
         """Disconnect from the device"""
-        if self.connected:
+
+        if await self.peripheral.is_connected():
             await self.peripheral.disconnect()
-            self.connected = False
 
     async def read(self, characteristic : GATTCharacteristic):
         return await self.peripheral.read(characteristic.characteristic)
