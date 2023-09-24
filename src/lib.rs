@@ -118,6 +118,7 @@ impl BlePeripheral {
 
     fn properties<'a>(&self, py: Python<'a>) -> PyResult<&'a PyAny> {
         let peripheral = self.0.clone();
+        
         pyo3_asyncio::tokio::future_into_py(py, async move {
             let properties = peripheral
                 .properties()
@@ -130,6 +131,7 @@ impl BlePeripheral {
 
     fn services<'a>(&self, py: Python<'a>) -> PyResult<&'a PyAny> {
         let peripheral = self.0.clone();
+
         pyo3_asyncio::tokio::future_into_py(py, async move {
             peripheral
                 .discover_services()
@@ -146,6 +148,7 @@ impl BlePeripheral {
 
     fn connect<'a>(&self, py: Python<'a>) -> PyResult<&'a PyAny> {
         let peripheral = self.0.clone();
+
         pyo3_asyncio::tokio::future_into_py(py, async move {
             peripheral
                 .connect()
@@ -158,6 +161,7 @@ impl BlePeripheral {
 
     fn disconnect<'a>(&self, py: Python<'a>) -> PyResult<&'a PyAny> {
         let peripheral = self.0.clone();
+
         pyo3_asyncio::tokio::future_into_py(py, async move {
             peripheral
                 .disconnect()
@@ -181,6 +185,7 @@ impl BlePeripheral {
     ) -> PyResult<&'a PyAny> {
         let peripheral = self.0.clone();
         let characteristic = characteristic.0;
+
         pyo3_asyncio::tokio::future_into_py(py, async move {
             peripheral
                 .write(
@@ -200,9 +205,9 @@ impl BlePeripheral {
     }
 
     fn read<'a>(&self, py: Python<'a>, characteristic: BleCharacteristic) -> PyResult<&'a PyAny> {
-        // debug!("Reading from characteristic: {self:?}");
         let peripheral = self.0.clone();
         let characteristic = characteristic.0;
+
         pyo3_asyncio::tokio::future_into_py(py, async move {
             debug!("Attempting to read from peripheral. {characteristic:?}");
             let bytes = peripheral
@@ -249,8 +254,7 @@ impl BlePeripheral {
                 while let Some(item) = stream.next().await {
                     Python::with_gil(|py| {
                         // TODO: handle exceptions here better.
-                        let result =
-                            callback.call(py, (item.uuid.to_string(), item.value), None);
+                        let result = callback.call(py, (item.uuid.to_string(), item.value), None);
                         debug!("{result:?}");
                     })
                 }
@@ -267,12 +271,16 @@ impl BlePeripheral {
 
 #[derive(Debug)]
 #[pyclass]
-struct BleAdapter(Arc<Adapter>);
+
+struct BleAdapter {
+    adapter: Arc<Adapter>,
+    is_scanning: bool,
+}
 
 #[pymethods]
 impl BleAdapter {
     fn adapter_info<'a>(&self, py: Python<'a>) -> PyResult<&'a PyAny> {
-        let adapter = self.0.clone();
+        let adapter = self.adapter.clone();
         pyo3_asyncio::tokio::future_into_py(py, async move {
             adapter
                 .adapter_info()
@@ -281,21 +289,32 @@ impl BleAdapter {
         })
     }
 
-    fn start_scan<'a>(&self, py: Python<'a>) -> PyResult<&'a PyAny> {
-        let adapter = self.0.clone();
+    fn start_scan<'a>(&mut self, py: Python<'a>) -> PyResult<&'a PyAny> {
+        // FIXME: race conditions, race conditions everywhere... Consider only setting this if we
+        // succeed in starting scanning.
+        let should_start_scan = if self.is_scanning {
+            false
+        } else {
+            self.is_scanning = true;
+            true
+        };
+
+        let adapter = self.adapter.clone();
 
         pyo3_asyncio::tokio::future_into_py(py, async move {
-            adapter
-                .start_scan(ScanFilter::default())
-                .await
-                .map_err(|x| PyValueError::new_err(x.to_string()))?;
+            if should_start_scan {
+                adapter
+                    .start_scan(ScanFilter::default())
+                    .await
+                    .map_err(|x| PyValueError::new_err(x.to_string()))?;
+            }
 
             Ok(())
         })
     }
 
     fn peripherals<'a>(&self, py: Python<'a>) -> PyResult<&'a PyAny> {
-        let adapter = self.0.clone();
+        let adapter = self.adapter.clone();
 
         pyo3_asyncio::tokio::future_into_py(py, async move {
             let peripherals = adapter
@@ -340,7 +359,10 @@ impl BleManager {
                 .await
                 .map_err(|x| PyValueError::new_err(x.to_string()))?
                 .into_iter()
-                .map(|x| BleAdapter(Arc::new(x)))
+                .map(|x| BleAdapter {
+                    adapter: Arc::new(x),
+                    is_scanning: false,
+                })
                 .collect::<Vec<_>>();
 
             Ok(adapters)
